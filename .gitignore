@@ -1,0 +1,28 @@
+# Build outputs
+**/build/
+**/install/
+**/log/
+**/managed_components/
+**/dependencies.lock
+
+# Runtime and generated files
+**/__pycache__/
+*.py[cod]
+*.log
+*.tgz
+.flash_gui/
+.remote_edit/
+
+# Local IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ESP-IDF machine-local configuration
+**/sdkconfig
+**/sdkconfig.old
+
+# ROS 2 / colcon metadata
+.colcon_install_layout
+COLCON_IGNORE

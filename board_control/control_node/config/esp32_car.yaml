@@ -1,0 +1,29 @@
+esp32_car_node:
+  ros__parameters:
+    serial_port: /dev/ttyUSB0
+    baud_rate: 115200
+    pub_rate_hz: 20.0
+
+    max_linear_mps: 1.5
+    max_angular_rps: 5.0
+    # /cmd_vel 发布端失联时自动停车；Nav2/遥控端应以高于 2 Hz 的频率持续发布。
+    cmd_vel_timeout_sec: 0.5
+
+    wheel_odom_topic: /wheel/odom
+    imu_topic: /imu/data
+    odom_frame: odom
+    # 轮式速度描述地面二维运动，EKF 输出 odom -> base_footprint。
+    base_frame: base_footprint
+    imu_frame: imu_link
+
+    # 实测底盘前进时原始 vx 为负；转换为 ROS REP-103 的 x 向前为正。
+    wheel_vx_scale: -1.0
+    # 左移与右移实测分别建议约 0.95 和 0.98，取折中值减小双向总误差。
+    # 负号将底盘原始横向速度转换为 ROS REP-103 的 y 向左为正。
+    wheel_vy_scale: -0.97
+
+    # Initial variances. Calibrate these values from stationary and motion logs.
+    wheel_linear_variance: 0.0025
+    wheel_angular_variance: 0.01
+    imu_angular_velocity_variance: 0.0025
+    imu_linear_acceleration_variance: 0.04

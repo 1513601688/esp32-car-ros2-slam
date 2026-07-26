@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ESP32 Car Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0;padding:0}
+:root{
+  --bg:#0b0f12;
+  --bg-2:#11181c;
+  --panel:#f6f1e7;
+  --panel-2:#fffaf0;
+  --ink:#172126;
+  --muted:#65747c;
+  --line:#d8d0c3;
+  --line-dark:#253238;
+  --accent:#e0a11b;
+  --accent-ink:#201607;
+  --cyan:#0aa6b8;
+  --green:#1a9b63;
+  --yellow:#d89300;
+  --red:#c54134;
+  --tile:#10191e;
+  --tile-2:#172329;
+  --white:#fffdf7;
+  --shadow:0 24px 70px rgba(0,0,0,.30);
+  --radius:8px;
+  --mono:"Cascadia Mono","SFMono-Regular","Consolas","Liberation Mono",monospace;
+  --sans:"Aptos","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+html{min-height:100%;background:var(--bg)}
+body{
+  min-height:100vh;
+  color:var(--ink);
+  font-family:var(--sans);
+  background:
+    linear-gradient(135deg,rgba(224,161,27,.08),transparent 38%),
+    radial-gradient(circle at 78% 18%,rgba(10,166,184,.15),transparent 30%),
+    linear-gradient(180deg,#0b0f12 0%,#11181c 52%,#0b0f12 100%);
+  user-select:none;
+  -webkit-user-select:none;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent 82%);
+}
+button,input{font:inherit}
+button{border:0}
+.dashboard{
+  position:relative;
+  width:min(1180px,100%);
+  min-height:100vh;
+  margin:0 auto;
+  padding:18px;
+  display:grid;
+  grid-template-columns:minmax(240px,.82fr) minmax(320px,1.18fr) minmax(300px,1fr);
+  grid-template-areas:
+    "header header header"
+    "params pulses gauges";
+  gap:14px;
+  animation:enter .32s ease-out;
+}
+.header{grid-area:header}
+.params{grid-area:params}
+.pulses-panel{grid-area:pulses}
+.gauges{grid-area:gauges}
+.panel{
+  position:relative;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  box-shadow:var(--shadow);
+}
+.header.panel{
+  min-height:88px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  overflow:hidden;
+}
+.header.panel::after{
+  content:"";
+  position:absolute;
+  right:0;
+  top:0;
+  bottom:0;
+  width:36%;
+  background:
+    linear-gradient(135deg,transparent 0 42%,rgba(224,161,27,.25) 42% 47%,transparent 47%),
+    linear-gradient(90deg,transparent,rgba(10,166,184,.13));
+  pointer-events:none;
+}
+.brand-block{position:relative;z-index:1;display:flex;flex-direction:column;gap:6px}
+.logo{
+  color:var(--ink);
+  font-size:28px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:0;
+}
+.logo span{color:var(--cyan)}
+.subtitle{font-size:13px;color:var(--muted);font-weight:650}
+.header-actions{position:relative;z-index:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.conn-status{
+  min-width:112px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  color:var(--white);
+  background:var(--tile);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;
+  padding:9px 14px;
+  font-size:13px;
+  font-weight:800;
+  box-shadow:0 10px 24px rgba(0,0,0,.22);
+}
+.conn-dot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(197,65,52,.16)}
+.conn-dot.online{background:var(--green);box-shadow:0 0 0 4px rgba(26,155,99,.18)}
+.conn-dot.connecting{background:var(--yellow);box-shadow:0 0 0 4px rgba(216,147,0,.18);animation:pulse 1s ease-out infinite}
+.panel-body{padding:16px}
+.panel-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:32px;
+  color:var(--ink);
+  font-size:14px;
+  font-weight:900;
+}
+.panel-title small{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  font-family:var(--mono);
+}
+.section-label{
+  margin:14px 0 7px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+}
+.control-stack{display:flex;flex-direction:column;gap:12px}
+.slider-row{
+  padding:13px;
+  border-radius:var(--radius);
+  background:#efe7d9;
+  border:1px solid var(--line);
+}
+.slider-label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+}
+.slider-label span{
+  min-width:42px;
+  color:var(--ink);
+  font-family:var(--mono);
+  font-size:20px;
+  text-align:right;
+}
+.slider-row input[type=range]{
+  width:100%;
+  height:28px;
+  accent-color:var(--accent);
+  cursor:pointer;
+}
+.button-row{display:grid;grid-template-columns:1fr;gap:10px}
+.action-btn{
+  min-height:44px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  font-weight:900;
+  letter-spacing:0;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.action-btn:focus-visible,.settings-toggle:focus-visible,.settings-panel button:focus-visible,.settings-panel input:focus-visible{
+  outline:3px solid rgba(10,166,184,.35);
+  outline-offset:2px;
+}
+.action-btn:hover{transform:translateY(-1px)}
+.action-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 12px 24px rgba(224,161,27,.22)}
+.action-secondary{background:var(--tile);color:var(--white);border:1px solid rgba(255,255,255,.12)}
+.hint{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+.pulse-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pulse-item{
+  min-height:104px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,var(--tile-2),var(--tile));
+  border:1px solid var(--line-dark);
+  color:var(--white);
+}
+.pulse-label{
+  color:#9fb2b9;
+  font-size:12px;
+  font-weight:900;
+}
+.pulse-item>span:last-child{display:flex;flex-direction:column;gap:4px}
+.pulse-value{
+  color:var(--white);
+  font-family:var(--mono);
+  font-size:28px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:0;
+  overflow-wrap:anywhere;
+}
+.pulse-turns{
+  color:#8fa4ab;
+  font-family:var(--mono);
+  font-size:12px;
+  font-weight:700;
+}
+.telemetry-grid{display:flex;flex-direction:column;gap:13px}
+.imu-heading{
+  margin:12px 0 7px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+}
+.imu-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.imu-cell{
+  min-height:68px;
+  padding:11px 8px;
+  text-align:center;
+  border-radius:var(--radius);
+  background:#efe7d9;
+  border:1px solid var(--line);
+}
+.imu-cell .ilbl{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0;
+}
+.imu-cell .ival{
+  margin-top:8px;
+  color:var(--ink);
+  font-family:var(--mono);
+  font-size:20px;
+  font-weight:900;
+  line-height:1;
+  overflow-wrap:anywhere;
+}
+.imu-note{
+  min-height:16px;
+  margin-top:10px;
+  color:var(--muted);
+  font-size:12px;
+  text-align:center;
+}
+.odom-row .imu-cell{
+  min-height:82px;
+  background:linear-gradient(180deg,#172329,#10191e);
+  border-color:var(--line-dark);
+}
+.odom-row .ilbl{color:#9fb2b9}
+.odom-row .ival{color:#ffffff;font-size:22px}
+.settings-toggle{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:20;
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  color:var(--white);
+  background:#10191e;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 14px 34px rgba(0,0,0,.28);
+  cursor:pointer;
+  font-size:18px;
+}
+.settings-panel{
+  position:fixed;
+  top:68px;
+  right:18px;
+  z-index:19;
+  width:min(320px,calc(100vw - 36px));
+  display:none;
+  flex-direction:column;
+  gap:12px;
+  padding:16px;
+  color:var(--ink);
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.settings-panel.show{display:flex;animation:panelIn .16s ease-out}
+.settings-title{font-size:14px;font-weight:900}
+.settings-panel input{
+  width:100%;
+  min-height:40px;
+  padding:9px 11px;
+  color:var(--ink);
+  background:#efe7d9;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  outline:none;
+}
+.settings-panel input::placeholder{color:#5f6d74}
+.settings-panel button{
+  min-height:40px;
+  padding:8px 14px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  font-weight:900;
+}
+.btn-connect{background:var(--cyan);color:#041214}
+.btn-disconnect{background:var(--red);color:white}
+@keyframes enter{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes panelIn{from{opacity:.001;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(216,147,0,.32)}100%{box-shadow:0 0 0 10px rgba(216,147,0,0)}}
+@media(max-width:960px){
+  .dashboard{
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "header header"
+      "params gauges"
+      "pulses pulses";
+  }
+}
+@media(max-width:680px){
+  .dashboard{
+    padding:12px;
+    grid-template-columns:1fr;
+    grid-template-areas:"header" "params" "gauges" "pulses";
+  }
+  .header.panel{align-items:flex-start;flex-direction:column;padding-right:58px}
+  .logo{font-size:24px}
+  .pulse-grid{grid-template-columns:1fr}
+  .imu-row{grid-template-columns:1fr 1fr 1fr}
+  .imu-cell{min-height:62px}
+  .imu-cell .ival{font-size:17px}
+}
+@media(max-width:390px){
+  .dashboard{padding:10px}
+  .imu-row{gap:6px}
+  .imu-cell{padding:9px 5px}
+  .pulse-value{font-size:24px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+</style>
+</head>
+<body>
+
+<main class="dashboard">
+  <header class="header panel">
+    <div class="brand-block">
+      <div class="logo">ESP32<span>CAR</span></div>
+      <div class="subtitle">Omni chassis telemetry console</div>
+    </div>
+    <div class="header-actions">
+      <div class="conn-status">
+        <div class="conn-dot" id="connDot"></div>
+        <span id="connText">未连接</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="params panel">
+    <div class="panel-body">
+      <div class="panel-title">
+        <span>控制参数</span>
+        <small>UART / ROS</small>
+      </div>
+      <div class="control-stack">
+        <div class="slider-row">
+          <div class="slider-label">电机加速度 <span id="accVal">10</span></div>
+          <input type="range" id="accSlider" min="0" max="255" value="10">
+        </div>
+        <div class="button-row">
+          <button class="action-btn action-primary" id="zeroPulse" type="button">脉冲归零</button>
+          <button class="action-btn action-secondary" id="zeroYaw" type="button">Yaw Zero</button>
+        </div>
+        <p class="hint">ROS 控制链路保持独立；这里的操作只发送现有校准命令。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="pulses-panel panel">
+    <div class="panel-body">
+      <div class="panel-title">
+        <span>编码器脉冲</span>
+        <small>3200 / rev</small>
+      </div>
+      <div class="pulse-grid">
+        <div class="pulse-item" id="gaugeFL"><span class="pulse-label">电机1</span><span><span class="pulse-value">0</span><span class="pulse-turns">≈ 0.00 圈</span></span></div>
+        <div class="pulse-item" id="gaugeFR"><span class="pulse-label">电机2</span><span><span class="pulse-value">0</span><span class="pulse-turns">≈ 0.00 圈</span></span></div>
+        <div class="pulse-item" id="gaugeRL"><span class="pulse-label">电机3</span><span><span class="pulse-value">0</span><span class="pulse-turns">≈ 0.00 圈</span></span></div>
+        <div class="pulse-item" id="gaugeRR"><span class="pulse-label">电机4</span><span><span class="pulse-value">0</span><span class="pulse-turns">≈ 0.00 圈</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gauges panel">
+    <div class="panel-body telemetry-grid">
+      <div>
+        <div class="panel-title">
+          <span>IMU 传感器</span>
+          <small>JY901</small>
+        </div>
+        <div class="imu-heading">加速度 m/s²</div>
+        <div class="imu-row">
+          <div class="imu-cell"><div class="ilbl">ax</div><div class="ival" id="imuAx">--</div></div>
+          <div class="imu-cell"><div class="ilbl">ay</div><div class="ival" id="imuAy">--</div></div>
+          <div class="imu-cell"><div class="ilbl">az</div><div class="ival" id="imuAz">--</div></div>
+        </div>
+        <div class="imu-heading">角速度 deg/s</div>
+        <div class="imu-row">
+          <div class="imu-cell"><div class="ilbl">gx</div><div class="ival" id="imuGx">--</div></div>
+          <div class="imu-cell"><div class="ilbl">gy</div><div class="ival" id="imuGy">--</div></div>
+          <div class="imu-cell"><div class="ilbl">gz</div><div class="ival" id="imuGz">--</div></div>
+        </div>
+        <div class="imu-heading">姿态角 deg</div>
+        <div class="imu-row">
+          <div class="imu-cell"><div class="ilbl">yaw</div><div class="ival" id="imuYaw">--</div></div>
+          <div class="imu-cell"><div class="ilbl">pitch</div><div class="ival" id="imuPitch">--</div></div>
+          <div class="imu-cell"><div class="ilbl">roll</div><div class="ival" id="imuRoll">--</div></div>
+        </div>
+        <div class="imu-note" id="imuNote">等待 IMU 数据...</div>
+      </div>
+
+      <div>
+        <div class="panel-title">
+          <span>底盘速度</span>
+          <small>odom</small>
+        </div>
+        <div class="imu-row odom-row">
+          <div class="imu-cell"><div class="ilbl">Vx m/s</div><div class="ival" id="odomVx">0</div></div>
+          <div class="imu-cell"><div class="ilbl">Vy m/s</div><div class="ival" id="odomVy">0</div></div>
+          <div class="imu-cell"><div class="ilbl">合速 m/s</div><div class="ival" id="odomSpeed">0</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<button class="settings-toggle" id="settingsToggle" title="连接设置" type="button">⚙</button>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-title">连接设置</div>
+  <input type="text" id="wsInput" placeholder="ESP32 地址">
+  <div style="display:flex;gap:8px">
+    <button class="btn-connect" id="btnConnect" type="button">连接</button>
+    <button class="btn-disconnect" id="btnDisconnect" type="button">断开</button>
+  </div>
+</div>
+
+<script>
+const WS_PATH='/ws',WS_PORT=80,RECONNECT_MS=2000;
+const DEFAULT_HOST=(location.protocol==='http:'||location.protocol==='https:')&&location.hostname?location.hostname:'esp32car.local';
+let ws=null,reconnectTimer=null,connected=false;
+
+function normalizeHost(input){
+  let host=(input||DEFAULT_HOST).trim();
+  host=host.replace(/^https?:\/\//i,'').replace(/^wss?:\/\//i,'');
+  host=host.split('/')[0];
+  return host||DEFAULT_HOST;
+}
+
+function getWsUrl(){
+  const host=normalizeHost(document.getElementById('wsInput').value);
+  return 'ws://'+host+(host.includes(':')?'':':'+WS_PORT)+WS_PATH;
+}
+
+function setConnState(s){
+  connected=(s==='online');
+  const d=document.getElementById('connDot'),t=document.getElementById('connText');
+  d.className='conn-dot';
+  if(s==='online'){d.classList.add('online');t.textContent='已连接';}
+  else if(s==='connecting'){d.classList.add('connecting');t.textContent='连接中...';}
+  else{t.textContent='未连接';}
+}
+
+function wsConnect(){
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  if(ws){try{ws.close()}catch(e){}}
+  const url=getWsUrl();setConnState('connecting');
+  try{
+    ws=new WebSocket(url);
+    ws.onopen=()=>{setConnState('online');if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}};
+    ws.onmessage=(e)=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.wheels)updateGauges(d);
+        if(d.imu)updateIMU(d.imu);
+        if(d.odom)updateOdom(d.odom);
+      }catch(err){}
+    };
+    ws.onclose=()=>{setConnState('offline');scheduleReconnect();};
+    ws.onerror=()=>{ws.close();};
+  }catch(e){setConnState('offline');scheduleReconnect();}
+}
+
+function wsDisconnect(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null;}if(ws){try{ws.close()}catch(e){};ws=null;}setConnState('offline');}
+function scheduleReconnect(){if(reconnectTimer)return;reconnectTimer=setTimeout(()=>{reconnectTimer=null;if(!connected)wsConnect();},RECONNECT_MS);}
+function wsSend(o){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(o));}
+
+const PULSE_PER_REV=3200;
+
+function updateGauges(data){
+  const pl=data.pulses||{},ks=['fl','fr','rl','rr'],ids=['gaugeFL','gaugeFR','gaugeRL','gaugeRR'];
+  ks.forEach((k,i)=>{
+    const pulse=pl[k]||0,el=document.getElementById(ids[i]);
+    if(el){
+      el.querySelector('.pulse-value').textContent=pulse;
+      el.querySelector('.pulse-turns').textContent='≈ '+(pulse/PULSE_PER_REV).toFixed(2)+' 圈';
+    }
+  });
+}
+
+const IMU_FIELDS=[
+  ['ax','imuAx'],['ay','imuAy'],['az','imuAz'],
+  ['gx','imuGx'],['gy','imuGy'],['gz','imuGz'],
+  ['yaw','imuYaw'],['pitch','imuPitch'],['roll','imuRoll']
+];
+function updateIMU(imu){
+  document.getElementById('imuNote').textContent='';
+  IMU_FIELDS.forEach(([f,id])=>{
+    const el=document.getElementById(id);
+    if(el&&imu[f]!==undefined){
+      const v=Number(imu[f]);
+      el.textContent=Math.abs(v)<0.01?'0':v.toFixed(Math.abs(v)<10?2:1);
+    }
+  });
+}
+
+function updateOdom(o){
+  document.getElementById('odomVx').textContent=o.vx.toFixed(3);
+  document.getElementById('odomVy').textContent=o.vy.toFixed(3);
+  document.getElementById('odomSpeed').textContent=Math.sqrt(o.vx*o.vx+o.vy*o.vy).toFixed(3);
+}
+
+document.getElementById('accSlider').addEventListener('input',function(){
+  document.getElementById('accVal').textContent=this.value;
+  wsSend({cmd:'set_acc',value:parseInt(this.value)});
+});
+document.getElementById('zeroPulse').addEventListener('click',()=>wsSend({cmd:'zero_pulse'}));
+document.getElementById('zeroYaw').addEventListener('click',()=>wsSend({cmd:'zero_yaw'}));
+
+document.getElementById('settingsToggle').addEventListener('click',()=>document.getElementById('settingsPanel').classList.toggle('show'));
+document.getElementById('btnConnect').addEventListener('click',wsConnect);
+document.getElementById('btnDisconnect').addEventListener('click',wsDisconnect);
+
+document.getElementById('wsInput').value=DEFAULT_HOST;
+wsConnect();
+window.addEventListener('beforeunload',()=>{wsSend({cmd:'stop'});wsDisconnect();});
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+ekf_filter_node:
+  ros__parameters:
+    # 二维底盘局部里程计：输出 odom 坐标系，不处理 map 坐标系。
+    frequency: 50.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+    publish_tf: true
+    publish_acceleration: false
+    print_diagnostics: true
+
+    map_frame: map
+    odom_frame: odom
+    # 二维运动基准使用车辆中心在地面的投影；实体 base_link 由静态 TF 抬高 11 cm。
+    base_link_frame: base_footprint
+    world_frame: odom
+
+    # 配置数组顺序：
+    # [x, y, z, roll, pitch, yaw,
+    #  vx, vy, vz, vroll, vpitch, vyaw,
+    #  ax, ay, az]
+
+    # 轮式里程计当前只有已校准的 vx、vy 可用于第一版融合。
+    # 暂不融合 wheel wz，以便先独立验证 IMU gz 的旋转积分结果。
+    odom0: /wheel/odom
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_nodelay: true
+    odom0_differential: false
+    odom0_relative: false
+
+    # JY901 绝对 Yaw 受车体地磁环境干扰，因此只融合准确的 Z 轴角速度。
+    # /imu/data 已通过 orientation_covariance[0] = -1 标记姿态不可用。
+    imu0: /imu/data
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_queue_size: 20
+    imu0_nodelay: true
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: false

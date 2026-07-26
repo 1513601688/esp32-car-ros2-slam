@@ -1,0 +1,20 @@
+ld14_lidar:
+  ros__parameters:
+    # LDROBOT LD14 triangle LiDAR model and serial protocol settings.
+    product_name: LDLiDAR_LD14
+    port_name: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5A6C087033-if00
+    serial_baudrate: 115200
+
+    # Standard ROS 2 topics and the frame carried by LaserScan messages.
+    laser_scan_topic_name: scan
+    point_cloud_2d_topic_name: pointcloud2d
+    frame_id: laser_frame
+
+    # REP-103 uses counterclockwise angles as positive.
+    laser_scan_dir: true
+
+    # Keep the complete 360-degree scan until the physical mounting and
+    # chassis self-occlusion region have been measured.
+    enable_angle_crop_func: false
+    angle_crop_min: 135.0
+    angle_crop_max: 225.0

@@ -1,0 +1,14 @@
+build/
+modules/firmware/esp32_car/build/
+sdkconfig.old
+modules/firmware/esp32_car/sdkconfig.old
+managed_components/
+modules/firmware/esp32_car/managed_components/
+dependencies.lock
+*.pyc
+__pycache__/
+.vscode/
+*.swp
+*.swo
+build_log.txt
+.flash_gui/

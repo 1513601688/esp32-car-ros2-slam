@@ -1,0 +1,24 @@
+menu "ESP32 Car Configuration"
+
+    menu "WiFi Settings"
+        config CAR_WIFI_SSID
+            string "WiFi SSID"
+            default "YOUR_ROUTER_SSID"
+            help
+                要连接的路由器名称
+
+        config CAR_WIFI_PASSWORD
+            string "WiFi Password"
+            default "YOUR_ROUTER_PASSWORD"
+            help
+                路由器密码
+
+        config CAR_WIFI_MAX_RETRY
+            int "WiFi 最大重试次数"
+            default 5
+            range 1 20
+            help
+                WiFi 断连后最大重试次数
+    endmenu
+
+endmenu

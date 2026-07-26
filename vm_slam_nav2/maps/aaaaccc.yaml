@@ -1,0 +1,7 @@
+image: aaaaccc.pgm
+mode: trinary
+resolution: 0.025000000
+origin: [-1.379198912, 0.389661753, 0.000000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.25
