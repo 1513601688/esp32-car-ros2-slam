@@ -8,7 +8,7 @@ amcl:
     global_frame_id: map
     scan_topic: /scan_slam
 
-    # 麦克纳姆底盘能够横向运动，必须使用全向运动模型。
+    # 全向轮底盘能够横向运动，必须使用全向运动模型。
     robot_model_type: nav2_amcl::OmniMotionModel
     alpha1: 0.2
     alpha2: 0.2

@@ -43,7 +43,7 @@ controller_server:
     FollowPath:
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       # 该阈值接近 pi，仅在路径方向几乎与车头完全相反时才在起步前旋转，
-      # 从而保留麦克纳姆底盘保持车头朝向横移、斜移的能力。
+      # 从而保留全向轮底盘保持车头朝向横移、斜移的能力。
       angular_dist_threshold: 3.10
       angular_disengage_threshold: 0.10
       forward_sampling_distance: 0.50

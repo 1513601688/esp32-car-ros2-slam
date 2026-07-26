@@ -1,4 +1,4 @@
-"""加载已保存地图并用 AMCL 为 ESP32 麦克纳姆小车定位。"""
+"""加载已保存地图并用 AMCL 为 ESP32 全向轮小车定位。"""
 
 from pathlib import Path
 

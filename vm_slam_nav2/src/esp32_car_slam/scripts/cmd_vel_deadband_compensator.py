@@ -61,7 +61,7 @@ class CmdVelDeadbandCompensator(Node):
     def on_command(self, source: Twist) -> None:
         output = Twist()
 
-        # 将 Vx/Vy 作为一个平移向量整体缩放，保持麦克纳姆底盘原运动方向。
+        # 将 Vx/Vy 作为一个平移向量整体缩放，保持全向轮底盘原运动方向。
         linear_norm = math.hypot(source.linear.x, source.linear.y)
         if linear_norm > self.linear_activation_epsilon:
             scale = max(1.0, self.min_linear_speed / linear_norm)

@@ -3,7 +3,7 @@
 <package format="3">
   <name>esp32_car_slam</name>
   <version>0.1.0</version>
-  <description>SLAM and Nav2 configuration for the ESP32 mecanum car.</description>
+  <description>SLAM and Nav2 configuration for the ESP32 omnidirectional-wheel car.</description>
   <maintainer email="luohjj@todo.todo">luohjj</maintainer>
   <license>Apache-2.0</license>
 
